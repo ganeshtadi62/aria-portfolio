@@ -1,6 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase, hasSupabase } from '../lib/supabase.js'
 import { SHAPES, createProject, deleteProject, listProjects, updateProject } from '../lib/projectsApi.js'
+import {
+  createExperience,
+  deleteExperience,
+  listExperience,
+  updateExperience,
+} from '../lib/experienceApi.js'
+import { watchTable } from '../lib/liveSync.js'
 import Shapes from './Shapes.jsx'
 
 const EMPTY = {
@@ -134,17 +141,75 @@ function ProjectForm({ initial, onSave, onCancel, saving }) {
   )
 }
 
-function Dashboard({ session }) {
+const EMPTY_EXP = {
+  role: '',
+  company: '',
+  period: '',
+  detail: '',
+  position: '0',
+  published: true,
+}
+
+function ExperienceForm({ initial, onSave, onCancel, saving }) {
+  const [f, setF] = useState(initial)
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+
+  const submit = (e) => {
+    e.preventDefault()
+    onSave(f)
+  }
+
+  return (
+    <form className="adm-card adm-form" onSubmit={submit}>
+      <h2 className="adm-h2">{initial.id ? 'Edit experience' : 'Add experience'}</h2>
+
+      <label className="adm-field">
+        <span>Role *</span>
+        <input required maxLength={100} value={f.role} onChange={set('role')} placeholder="Lead Product Designer" />
+      </label>
+      <div className="adm-row">
+        <label className="adm-field">
+          <span>Company</span>
+          <input maxLength={100} value={f.company} onChange={set('company')} placeholder="Northlight Studio" />
+        </label>
+        <label className="adm-field">
+          <span>Period</span>
+          <input maxLength={40} value={f.period} onChange={set('period')} placeholder="2023 — Now" />
+        </label>
+      </div>
+      <label className="adm-field">
+        <span>Description</span>
+        <textarea rows={4} maxLength={600} value={f.detail} onChange={set('detail')} />
+      </label>
+      <div className="adm-row">
+        <label className="adm-field adm-narrow">
+          <span>Order</span>
+          <input type="number" step="1" value={f.position} onChange={set('position')} />
+        </label>
+        <label className="adm-check">
+          <input type="checkbox" checked={f.published} onChange={set('published')} />
+          <span>Published</span>
+        </label>
+      </div>
+      <p className="adm-sub">Lower order numbers appear higher on the timeline. New entries start at the top.</p>
+
+      <div className="adm-actions">
+        <button className="btn" disabled={saving}>
+          {saving ? 'Saving…' : initial.id ? 'Save changes' : 'Add experience'} <span className="arr">→</span>
+        </button>
+        {onCancel && (
+          <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>
+        )}
+      </div>
+    </form>
+  )
+}
+
+function ProjectsPanel({ flash }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(null) // null | 'new' | project
-  const [msg, setMsg] = useState(null) // {kind:'ok'|'err', text}
-
-  const flash = (kind, text) => {
-    setMsg({ kind, text })
-    setTimeout(() => setMsg(null), 4000)
-  }
 
   const refresh = useCallback(async () => {
     try {
@@ -154,10 +219,12 @@ function Dashboard({ session }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [flash])
 
+  // Initial load + live updates (database -> admin).
   useEffect(() => {
     refresh()
+    return watchTable('projects', refresh)
   }, [refresh])
 
   const save = async (p) => {
@@ -165,7 +232,7 @@ function Dashboard({ session }) {
     try {
       if (p.id) {
         await updateProject(p.id, p)
-        flash('ok', 'Project updated — live on the site now.')
+        flash('ok', 'Project saved to the database — live on the site now.')
       } else {
         const nextPos = rows.reduce((m, r) => Math.max(m, r.position), 0) + 1
         await createProject({
@@ -173,7 +240,7 @@ function Dashboard({ session }) {
           position: nextPos,
           code: String(nextPos).padStart(2, '0'),
         })
-        flash('ok', 'Project added — live on the site now.')
+        flash('ok', 'Project created in the database — live on the site now.')
       }
       setEditing(null)
       await refresh()
@@ -197,15 +264,170 @@ function Dashboard({ session }) {
 
   const initialFor = (p) => (p === 'new' ? EMPTY : { ...p, tags: p.tags.join(', ') })
 
+  if (editing) {
+    return (
+      <ProjectForm
+        key={editing === 'new' ? 'new' : editing.id}
+        initial={initialFor(editing)}
+        saving={saving}
+        onSave={save}
+        onCancel={() => setEditing(null)}
+      />
+    )
+  }
+
+  return (
+    <>
+      <button className="btn" onClick={() => setEditing('new')}>
+        + Add project <span className="arr">→</span>
+      </button>
+      <div className="adm-list">
+        {loading && <p className="adm-sub">Loading…</p>}
+        {!loading && rows.length === 0 && <p className="adm-sub">No projects yet. Add your first one.</p>}
+        {rows.map((p) => (
+          <div key={p.id} className="adm-item" style={{ '--accent': p.accent }}>
+            <div className="adm-thumb">
+              <Shapes kind={p.shape} accent={p.accent} />
+            </div>
+            <div className="adm-meta">
+              <strong>{p.title}</strong>
+              <span>
+                {p.category || '—'} · {p.year}
+                {!p.published && <em className="adm-draft"> · draft</em>}
+              </span>
+            </div>
+            <div className="adm-actions">
+              <button className="btn ghost" onClick={() => setEditing(p)}>Edit</button>
+              <button className="btn ghost danger" onClick={() => remove(p)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function ExperiencePanel({ flash }) {
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(null) // null | 'new' | entry
+
+  const refresh = useCallback(async () => {
+    try {
+      setRows(await listExperience())
+    } catch (e) {
+      flash('err', e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [flash])
+
+  // Initial load + live updates (database -> admin).
+  useEffect(() => {
+    refresh()
+    return watchTable('experience', refresh)
+  }, [refresh])
+
+  const save = async (x) => {
+    setSaving(true)
+    try {
+      if (x.id) {
+        await updateExperience(x.id, x)
+        flash('ok', 'Experience saved to the database — live on the site now.')
+      } else {
+        await createExperience(x)
+        flash('ok', 'Experience created in the database — live on the site now.')
+      }
+      setEditing(null)
+      await refresh()
+    } catch (e) {
+      flash('err', e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async (x) => {
+    if (!window.confirm(`Delete "${x.role}"? This cannot be undone.`)) return
+    try {
+      await deleteExperience(x.id)
+      flash('ok', 'Experience deleted.')
+      await refresh()
+    } catch (e) {
+      flash('err', e.message)
+    }
+  }
+
+  const initialFor = (x) => {
+    if (x !== 'new') return { ...x, position: String(x.position) }
+    const top = rows.reduce((m, r) => Math.min(m, r.position), 1)
+    return { ...EMPTY_EXP, position: String(top - 1) }
+  }
+
+  if (editing) {
+    return (
+      <ExperienceForm
+        key={editing === 'new' ? 'new' : editing.id}
+        initial={initialFor(editing)}
+        saving={saving}
+        onSave={save}
+        onCancel={() => setEditing(null)}
+      />
+    )
+  }
+
+  return (
+    <>
+      <button className="btn" onClick={() => setEditing('new')}>
+        + Add experience <span className="arr">→</span>
+      </button>
+      <div className="adm-list">
+        {loading && <p className="adm-sub">Loading…</p>}
+        {!loading && rows.length === 0 && <p className="adm-sub">No experience yet. Add your first entry.</p>}
+        {rows.map((x) => (
+          <div key={x.id} className="adm-item">
+            <div className="adm-meta">
+              <strong>{x.role}</strong>
+              <span>
+                {[x.company, x.period].filter(Boolean).join(' · ') || '—'}
+                {!x.published && <em className="adm-draft"> · draft</em>}
+              </span>
+            </div>
+            <div className="adm-actions">
+              <button className="btn ghost" onClick={() => setEditing(x)}>Edit</button>
+              <button className="btn ghost danger" onClick={() => remove(x)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function Dashboard({ session }) {
+  const [tab, setTab] = useState('work') // 'work' | 'experience'
+  const [msg, setMsg] = useState(null) // {kind:'ok'|'err', text}
+  const timer = useRef(null)
+
+  // Stable identity so the panels' effects don't re-subscribe on every toast.
+  const flash = useCallback((kind, text) => {
+    setMsg({ kind, text })
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setMsg(null), 4000)
+  }, [])
+
+  useEffect(() => () => clearTimeout(timer.current), [])
+
   return (
     <div className="adm-wrap">
       <header className="adm-head">
         <div>
           <div className="eyebrow">Admin</div>
           <h1 className="adm-title">
-            Your <em>projects</em>
+            Your <em>{tab === 'work' ? 'projects' : 'experience'}</em>
           </h1>
-          <p className="adm-sub">Signed in as {session.user.email}</p>
+          <p className="adm-sub">Signed in as {session.user.email} · changes sync live with the database</p>
         </div>
         <div className="adm-actions">
           <a className="btn ghost" href="/">View site</a>
@@ -213,47 +435,25 @@ function Dashboard({ session }) {
         </div>
       </header>
 
+      <div className="adm-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'work'} className={tab === 'work' ? 'on' : ''} onClick={() => setTab('work')}>
+          Work
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'experience'}
+          className={tab === 'experience' ? 'on' : ''}
+          onClick={() => setTab('experience')}
+        >
+          Experience
+        </button>
+      </div>
+
       {msg && (
         <div className={`adm-toast ${msg.kind}`} role="status">{msg.text}</div>
       )}
 
-      {editing ? (
-        <ProjectForm
-          key={editing === 'new' ? 'new' : editing.id}
-          initial={initialFor(editing)}
-          saving={saving}
-          onSave={save}
-          onCancel={() => setEditing(null)}
-        />
-      ) : (
-        <>
-          <button className="btn" onClick={() => setEditing('new')}>
-            + Add project <span className="arr">→</span>
-          </button>
-          <div className="adm-list">
-            {loading && <p className="adm-sub">Loading…</p>}
-            {!loading && rows.length === 0 && <p className="adm-sub">No projects yet. Add your first one.</p>}
-            {rows.map((p) => (
-              <div key={p.id} className="adm-item" style={{ '--accent': p.accent }}>
-                <div className="adm-thumb">
-                  <Shapes kind={p.shape} accent={p.accent} />
-                </div>
-                <div className="adm-meta">
-                  <strong>{p.title}</strong>
-                  <span>
-                    {p.category || '—'} · {p.year}
-                    {!p.published && <em className="adm-draft"> · draft</em>}
-                  </span>
-                </div>
-                <div className="adm-actions">
-                  <button className="btn ghost" onClick={() => setEditing(p)}>Edit</button>
-                  <button className="btn ghost danger" onClick={() => remove(p)}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+      {tab === 'work' ? <ProjectsPanel flash={flash} /> : <ExperiencePanel flash={flash} />}
     </div>
   )
 }
