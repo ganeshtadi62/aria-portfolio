@@ -1,5 +1,5 @@
-import React from 'react'
-import { experience } from '../data/content.js'
+import React, { useMemo } from 'react'
+import { useExperience } from '../lib/useExperience.js'
 import { useReveal } from '../hooks.js'
 
 function Job({ j, i }) {
@@ -22,6 +22,9 @@ function Job({ j, i }) {
 
 export default function Experience() {
   const [ref, shown] = useReveal()
+  const { items, status } = useExperience()
+  const visible = useMemo(() => items.filter((j) => j.published), [items])
+
   return (
     <section id="experience">
       <div className="wrap">
@@ -34,9 +37,17 @@ export default function Experience() {
           </h2>
         </div>
         <div className="timeline">
-          {experience.map((j, i) => (
-            <Job key={j.period} j={j} i={i} />
-          ))}
+          {status === 'loading' ? (
+            <div aria-busy="true" aria-label="Loading experience">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="job skeleton" />
+              ))}
+            </div>
+          ) : visible.length === 0 ? (
+            <p className="empty-note">No experience listed yet.</p>
+          ) : (
+            visible.map((j, i) => <Job key={j.id} j={j} i={i} />)
+          )}
         </div>
       </div>
     </section>

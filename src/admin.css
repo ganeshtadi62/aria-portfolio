@@ -41,3 +41,10 @@
 .btn.danger:hover { border-color: #ff8a7a; color: #ff8a7a; }
 .btn:disabled { opacity: 0.6; cursor: wait; transform: none; box-shadow: none; }
 @media (max-width: 560px) { .adm-narrow { flex: 1 1 100%; } .adm-item .adm-actions { width: 100%; } }
+
+/* ───────── Admin tabs + experience skeleton ───────── */
+.adm-tabs { display: flex; gap: 0.4rem; border-bottom: 1px solid var(--line); }
+.adm-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.7rem 1.1rem; cursor: pointer; margin-bottom: -1px; transition: color 0.2s, border-color 0.2s; }
+.adm-tabs button:hover { color: var(--paper); }
+.adm-tabs button.on { color: var(--lime); border-bottom-color: var(--lime); }
+.job.skeleton { min-height: 120px; margin-bottom: 1.2rem; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(100deg, var(--ink-2) 30%, var(--ink-3) 50%, var(--ink-2) 70%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; }
