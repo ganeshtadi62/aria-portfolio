@@ -9,8 +9,9 @@ import Experience from './components/Experience.jsx'
 import Testimonials from './components/Testimonials.jsx'
 import Contact from './components/Contact.jsx'
 import Footer from './components/Footer.jsx'
+import Admin from './components/Admin.jsx'
 
-export default function App() {
+function Site() {
   const progress = useScrollProgress()
   const glow = useRef(null)
 
@@ -59,4 +60,10 @@ export default function App() {
       <Footer />
     </>
   )
+}
+
+/** Tiny path switch (no router dependency): /admin shows the editor, everything else the site. */
+export default function App() {
+  const path = window.location.pathname.replace(/\/+$/, '')
+  return path === '/admin' ? <Admin /> : <Site />
 }

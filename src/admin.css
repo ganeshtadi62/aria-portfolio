@@ -1,0 +1,43 @@
+/* ───────── Loading skeleton + empty state (Work) ───────── */
+.card.skeleton { min-height: 360px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(100deg, var(--ink-2) 30%, var(--ink-3) 50%, var(--ink-2) 70%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; cursor: default; }
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.empty-note { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; padding: 3rem 0; }
+
+/* ───────── Admin (/admin) ───────── */
+.adm-page { min-height: 100vh; padding: 3rem 1.25rem 5rem; display: flex; justify-content: center; align-items: flex-start; background: var(--ink); color: var(--paper); }
+.adm-wrap { width: 100%; max-width: 860px; display: grid; gap: 1.6rem; }
+.adm-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; }
+.adm-title { font-family: var(--serif); font-weight: 400; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.05; margin: 0.4rem 0; }
+.adm-title em { font-style: italic; color: var(--lime); }
+.adm-h2 { font-family: var(--serif); font-weight: 400; font-size: 1.7rem; margin-bottom: 0.4rem; }
+.adm-sub { color: var(--muted); font-size: 0.92rem; }
+.adm-card { background: var(--ink-2); border: 1px solid var(--line); border-radius: 18px; padding: 1.8rem; display: grid; gap: 1.1rem; width: 100%; }
+.adm-login { max-width: 420px; margin-top: 8vh; }
+.adm-field { display: grid; gap: 0.4rem; flex: 1; min-width: 0; }
+.adm-field > span, .adm-check span { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.adm-field input, .adm-field textarea, .adm-field select { width: 100%; background: var(--ink); border: 1px solid var(--line); border-radius: 10px; color: var(--paper); font: inherit; padding: 0.75rem 0.9rem; outline: none; transition: border-color 0.25s; }
+.adm-field input[type="color"] { padding: 0.2rem; height: 2.7rem; cursor: pointer; }
+.adm-field input:focus, .adm-field textarea:focus, .adm-field select:focus { border-color: var(--lime); }
+.adm-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+.adm-narrow { flex: 0 0 110px; }
+.adm-check { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.7rem; cursor: pointer; }
+.adm-check input { accent-color: var(--lime); width: 1.1rem; height: 1.1rem; }
+.adm-preview { height: 150px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.adm-preview svg { width: 100%; height: 100%; display: block; }
+.adm-actions { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; }
+.adm-back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+.adm-back:hover { color: var(--paper); }
+.adm-err { color: #ff8a7a; font-size: 0.88rem; }
+.adm-list { display: grid; gap: 0.8rem; }
+.adm-item { display: flex; align-items: center; gap: 1rem; background: var(--ink-2); border: 1px solid var(--line); border-radius: 14px; padding: 0.8rem; flex-wrap: wrap; }
+.adm-thumb { width: 92px; height: 68px; border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
+.adm-thumb svg { width: 100%; height: 100%; display: block; }
+.adm-meta { display: grid; gap: 0.2rem; flex: 1; min-width: 160px; }
+.adm-meta span { color: var(--muted); font-size: 0.85rem; }
+.adm-draft { color: var(--lime); font-style: normal; }
+.adm-toast { padding: 0.8rem 1rem; border-radius: 10px; font-size: 0.9rem; border: 1px solid var(--line); }
+.adm-toast.ok { border-color: rgba(212, 255, 58, 0.5); color: var(--lime); }
+.adm-toast.err { border-color: rgba(255, 138, 122, 0.5); color: #ff8a7a; }
+.btn.danger:hover { border-color: #ff8a7a; color: #ff8a7a; }
+.btn:disabled { opacity: 0.6; cursor: wait; transform: none; box-shadow: none; }
+@media (max-width: 560px) { .adm-narrow { flex: 1 1 100%; } .adm-item .adm-actions { width: 100%; } }
